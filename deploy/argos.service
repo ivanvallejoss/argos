@@ -1,0 +1,39 @@
+[Unit]
+Description=Argos: lee Gatus y sirve la página del panel de monitoreo
+After=network-online.target gatus.service
+Wants=network-online.target gatus.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/argos
+# Valores por defecto: escucha en 127.0.0.1:8081 y lee Gatus en 127.0.0.1:8080.
+# Para cambiarlos: systemctl edit argos → Environment=ARGOS_ESCUCHA=... / ARGOS_GATUS_URL=...
+
+DynamicUser=yes
+Restart=on-failure
+RestartSec=5
+MemoryMax=64M
+
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

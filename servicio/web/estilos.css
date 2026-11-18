@@ -1,0 +1,237 @@
+/*
+ * Argos: panel para la Tab M7 (1024×600, Firefox con dibujado por software).
+ * Reglas de movimiento:
+ *   - Transiciones cortas solo cuando cambia un estado (color u opacidad).
+ *   - Animaciones constantes solo con body.activo (hasta 2,5 min después de un toque).
+ *   - body.quieto (modo medición) apaga todo.
+ */
+
+:root {
+  --fondo: #0f1113;
+  --tarjeta: #1b1e22;
+  --texto: #e8eaed;
+  --tenue: #9aa0a6;
+
+  /* Fondos del cartel general (texto blanco encima) */
+  --cartel-ok: #1b6e3c;
+  --cartel-fallando: #8a5a00;
+  --cartel-caido: #b3261e;
+  --cartel-sin-internet: #2a5699;
+  --cartel-no-mide: #5a3e8f;
+  --cartel-gris: #3c4043;
+
+  /* Texto y bordes de las tarjetas */
+  --ok: #5fd38d;
+  --fallando: #f2b84b;
+  --caido: #ff7a6e;
+  --sin-dato: #a8adb3;
+
+  --historial-ok: #3fae6c;
+  --historial-falla: #e0574c;
+  --historial-vacio: #2a2e33;
+
+  --cambio: 0.3s ease-out;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: system-ui, Roboto, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  overflow: hidden;
+  user-select: none;
+}
+
+/* El alto real depende de las barras de Android que Firefox deja visibles. */
+.panel {
+  box-sizing: border-box;
+  height: 100vh;
+  height: 100dvh;
+  padding: 10px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+/* --- Cartel general --------------------------------------------------------- */
+
+.general {
+  border-radius: 14px;
+  padding: 12px 20px;
+  background: var(--cartel-gris);
+  color: #fff;
+  transition: background-color var(--cambio);
+}
+
+.general h1 {
+  margin: 0;
+  font-size: 40px;
+  line-height: 1.15;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.general p {
+  margin: 2px 0 0;
+  font-size: 20px;
+  line-height: 1.3;
+  min-height: 1.3em;
+  opacity: 0.92;
+}
+
+.general[data-estado="ok"] { background: var(--cartel-ok); }
+.general[data-estado="fallando"] { background: var(--cartel-fallando); }
+.general[data-estado="caido"] { background: var(--cartel-caido); }
+.general[data-estado="sin_internet"] { background: var(--cartel-sin-internet); }
+.general[data-estado="no_mide"] { background: var(--cartel-no-mide); }
+
+/* --- Tarjetas --------------------------------------------------------------- */
+
+.sistemas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 10px;
+  min-height: 0;
+  transition: opacity var(--cambio);
+}
+
+.tarjeta {
+  --color: var(--sin-dato);
+  min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 10px 16px 12px;
+  border-radius: 14px;
+  border-left: 10px solid var(--color);
+  background: var(--tarjeta);
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto;
+  transition: border-color var(--cambio);
+}
+
+.tarjeta[data-estado="ok"] { --color: var(--ok); }
+.tarjeta[data-estado="fallando"] { --color: var(--fallando); }
+.tarjeta[data-estado="caido"] { --color: var(--caido); }
+
+.tarjeta p,
+.tarjeta h2 {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nombre {
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--tenue);
+}
+
+.estado {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color);
+  transition: color var(--cambio);
+}
+
+.detalle {
+  font-size: 18px;
+}
+
+.hace {
+  font-size: 15px;
+  color: var(--tenue);
+}
+
+.historial {
+  display: flex;
+  gap: 3px;
+  height: 12px;
+  align-self: end;
+}
+
+.historial[hidden] {
+  display: flex;
+  visibility: hidden;
+}
+
+.historial i {
+  flex: 1;
+  border-radius: 2px;
+  background: var(--historial-vacio);
+}
+
+.historial i.ok { background: var(--historial-ok); }
+.historial i.falla { background: var(--historial-falla); }
+
+/* Aviso por cambio de estado: tres parpadeos del texto al pasar a "Caído". */
+.estado.avisando {
+  animation: aviso 0.8s ease-in-out 3;
+}
+
+@keyframes aviso {
+  50% { opacity: 0.2; }
+}
+
+/* Sin conexión con la notebook: las tarjetas quedan atenuadas con el último dato. */
+.desconectado .sistemas { opacity: 0.4; }
+
+/* --- Pie -------------------------------------------------------------------- */
+
+.pie {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  color: var(--tenue);
+}
+
+.modo {
+  margin-left: auto;
+  color: var(--fallando);
+}
+
+/* Animación constante mínima, para medir: un punto que late. */
+.latido {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ok);
+  opacity: 0.6;
+}
+
+.activo .latido {
+  animation: latido 1.6s ease-in-out infinite;
+}
+
+@keyframes latido {
+  50% { opacity: 0.15; }
+}
+
+/* --- Sin movimiento --------------------------------------------------------- */
+
+.quieto *,
+.quieto *::before,
+.quieto *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

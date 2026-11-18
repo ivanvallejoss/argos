@@ -1,0 +1,82 @@
+# Gatus de argos, el panel de monitoreo (hp-g4-vallejos).
+#
+# Gatus solo mide. Escucha únicamente dentro de la notebook y el único que lo
+# lee es argos. Para ver su página propia mientras depurás:
+#   ssh -L 8080:127.0.0.1:8080 hp-g4-vallejos   →   http://localhost:8080
+#
+# Grupos que entiende argos:
+#   sistemas → una tarjeta por chequeo, en orden alfabético por nombre.
+#   control  → chequeos hacia afuera de casa. Si fallan todos, el panel muestra
+#              "Se cortó internet en casa" en vez de dar los sistemas por caídos.
+#
+# Valores que no van al repo (/etc/gatus/gatus.env):
+#   VPS_IP      IP pública del VPS (está detrás de Cloudflare, mejor no publicarla)
+#   BRICKA_URL  dirección pública de Bricka, con https://
+#
+# A propósito NO se usa `connectivity` de Gatus: cuando detecta que no hay
+# internet saltea todas las mediciones, y el panel no podría distinguir
+# "sin internet" de "Gatus trabado".
+#
+# Avisos: en stand by hasta que bottero esté listo.
+
+web:
+  address: 127.0.0.1
+  port: 8080
+
+storage:
+  type: sqlite
+  path: /var/lib/gatus/gatus.db
+
+endpoints:
+  # --- Sistemas ---------------------------------------------------------------
+
+  - name: ivanvallejos.dev
+    group: sistemas
+    url: https://ivanvallejos.dev
+    interval: 60s
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 3000"
+
+  # Ping directo a la IP pública: no depende de Cloudflare ni del sitio.
+  # Necesita la regla de ICMP desde la IP de casa en el firewall de Hetzner.
+  - name: VPS
+    group: sistemas
+    url: icmp://${VPS_IP}
+    interval: 60s
+    conditions:
+      - "[CONNECTED] == true"
+
+  # Margen más amplio: el servidor está en Falkenstein.
+  - name: Bricka
+    group: sistemas
+    url: ${BRICKA_URL}
+    interval: 60s
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 5000"
+
+  # --- Control: ¿hay internet en casa? ----------------------------------------
+  # Dos proveedores distintos y ninguno de Cloudflare (dos sistemas están detrás
+  # de Cloudflare). Cada consulta pide un nombre cuyo DNS es del mismo dueño,
+  # para no depender de terceros: google.com (Google) y wikipedia.org (Wikimedia).
+
+  - name: DNS de Google
+    group: control
+    url: "8.8.8.8"
+    interval: 60s
+    dns:
+      query-name: "google.com"
+      query-type: "A"
+    conditions:
+      - "[DNS_RCODE] == NOERROR"
+
+  - name: DNS de Quad9
+    group: control
+    url: "9.9.9.9"
+    interval: 60s
+    dns:
+      query-name: "wikipedia.org"
+      query-type: "A"
+    conditions:
+      - "[DNS_RCODE] == NOERROR"

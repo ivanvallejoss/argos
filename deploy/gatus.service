@@ -1,0 +1,47 @@
+[Unit]
+Description=Gatus: mediciones para argos
+Documentation=https://github.com/TwiN/gatus
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/gatus
+Environment=GATUS_CONFIG_PATH=/etc/gatus/config.yaml
+# En INFO anota cada chequeo (unas 7000 líneas por día al journal, en disco mecánico).
+# Para depurar: systemctl edit gatus → Environment=GATUS_LOG_LEVEL=INFO
+Environment=GATUS_LOG_LEVEL=WARN
+EnvironmentFile=/etc/gatus/gatus.env
+
+# Usuario efímero propio; la base SQLite queda en /var/lib/gatus.
+DynamicUser=yes
+StateDirectory=gatus
+Restart=on-failure
+RestartSec=10
+MemoryMax=200M
+
+# Endurecimiento. El ping funciona sin privilegios (Gatus ≥ 5.31 usa ping
+# sin privilegios), así que no hace falta ninguna capacidad.
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
